@@ -100,11 +100,24 @@ npm test
 cd client && npm test
 ```
 
+## Android 部署
+
+### 快速开始
+
+1. **安装 Android Studio**：https://developer.android.com/studio
+2. **打开项目**：在 Android Studio 中打开 `android` 目录
+3. **同步 Gradle**：等待依赖下载完成
+4. **运行应用**：点击 Run 按钮或按 Shift+F10
+
+详细步骤请查看：
+- 📱 [Android 完整部署指南](android/DEPLOYMENT_GUIDE.md) - **推荐新手阅读**
+- 🚀 [快速开始](android/QUICKSTART.md)
+- 📖 [Android 项目说明](android/README.md)
+
 ## 相关文档
 
 - [功能说明](doc/FEATURES.md)
 - [Supabase 配置](doc/SUPABASE_SETUP.md)
-- [Android 快速开始](android/QUICKSTART.md)
 - [更新日志](doc/CHANGELOG.md)
 
 ## License

@@ -26,12 +26,122 @@ public class AndroidInterface {
     private WebView webView;
     private PermissionManager permissionManager;
     private FilePickerHelper filePickerHelper;
+    private ChatDatabaseHelper dbHelper;
+    
+    private MainActivity mainActivity;
     
     public AndroidInterface(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        this.mainActivity = (MainActivity) activity;
         this.permissionManager = new PermissionManager(activity);
         this.filePickerHelper = new FilePickerHelper(activity);
+        this.dbHelper = new ChatDatabaseHelper(activity);
+    }
+    
+    // ==================== Database Methods ====================
+    
+    /**
+     * Save a message to local SQLite database
+     * 
+     * @param messageJson JSON string of the message
+     * @return JSON response with success status
+     */
+    @JavascriptInterface
+    public String saveMessage(String messageJson) {
+        try {
+            boolean success = dbHelper.saveMessage(messageJson);
+            if (success) {
+                return createSuccessResponse("Message saved");
+            } else {
+                return createErrorResponse("Failed to save message");
+            }
+        } catch (Exception e) {
+            return handleError("Failed to save message", e);
+        }
+    }
+    
+    /**
+     * Get all messages from database
+     * 
+     * @param limit Maximum number of messages (0 for all)
+     * @return JSON array string of messages
+     */
+    @JavascriptInterface
+    public String getMessages(int limit) {
+        try {
+            return dbHelper.getAllMessages(limit);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+    
+    /**
+     * Get messages before a specific timestamp (for pagination)
+     * 
+     * @param beforeTimestamp Timestamp in milliseconds
+     * @param limit Maximum number of messages
+     * @return JSON array string of messages
+     */
+    @JavascriptInterface
+    public String getMessagesBefore(long beforeTimestamp, int limit) {
+        try {
+            return dbHelper.getMessagesBefore(beforeTimestamp, limit);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+    
+    /**
+     * Get total message count
+     * 
+     * @return Message count as string
+     */
+    @JavascriptInterface
+    public String getMessageCount() {
+        try {
+            int count = dbHelper.getMessageCount();
+            return "{\"success\":true,\"count\":" + count + "}";
+        } catch (Exception e) {
+            return handleError("Failed to get message count", e);
+        }
+    }
+    
+    /**
+     * Clear all messages from database
+     * 
+     * @return JSON response with success status
+     */
+    @JavascriptInterface
+    public String clearMessages() {
+        try {
+            boolean success = dbHelper.clearAllMessages();
+            if (success) {
+                return createSuccessResponse("All messages cleared");
+            } else {
+                return createErrorResponse("Failed to clear messages");
+            }
+        } catch (Exception e) {
+            return handleError("Failed to clear messages", e);
+        }
+    }
+    
+    /**
+     * Delete old messages (older than specified days)
+     * 
+     * @param days Number of days to keep
+     * @return JSON response with number of deleted messages
+     */
+    @JavascriptInterface
+    public String deleteOldMessages(int days) {
+        try {
+            int deleted = dbHelper.deleteOldMessages(days);
+            return "{\"success\":true,\"deleted\":" + deleted + "}";
+        } catch (Exception e) {
+            return handleError("Failed to delete old messages", e);
+        }
     }
     
     /**
@@ -80,55 +190,43 @@ public class AndroidInterface {
     /**
      * Open native file picker and return selected file as Base64
      * 
-     * Requirement 7.4: Open native file picker filtered by type and return Base64 file
-     * Requirement 7.5: Handle errors gracefully and return error messages
-     * Requirement 10.4: Return error when permission is denied
-     * Requirement 4.1: Access device media and encode to Base64
-     * Requirement 4.5: Handle large files with compression and size limits
+     * This method launches the native file picker asynchronously.
+     * The result will be returned via the JavaScript callback function.
      * 
-     * Note: This is a synchronous method for simplicity. In a production app,
-     * you should use ActivityResultLauncher with callbacks and JavaScript promises
-     * for proper asynchronous file selection.
-     * 
-     * For this implementation, we provide the infrastructure and error handling.
-     * The actual file picker launch would need to be integrated with MainActivity's
-     * ActivityResultLauncher.
+     * Usage in JavaScript:
+     * window.onFileSelected = function(result) {
+     *     const data = JSON.parse(result);
+     *     if (data.success) {
+     *         // Use data.data (Base64 data URI)
+     *     } else {
+     *         // Handle error: data.error
+     *     }
+     * };
+     * window.AndroidInterface.chooseFileAsync("image", "onFileSelected");
      * 
      * @param type The type of file to pick: "image", "video", or "audio"
-     * @return JSON string with success/error and data/message
+     * @param callback JavaScript callback function name (e.g., "onFileSelected")
      */
     @JavascriptInterface
-    public String chooseFile(String type) {
+    public void chooseFileAsync(String type, String callback) {
         try {
-            // Validate input parameter (Requirement 7.5)
+            // Validate input parameters
             if (type == null || type.trim().isEmpty()) {
-                return createErrorResponse("Invalid file type parameter");
+                notifyJavaScript(callback, createErrorResponse("Invalid file type parameter"));
+                return;
             }
             
-            // Check and request permissions first (Requirement 10.4)
+            if (callback == null || callback.trim().isEmpty()) {
+                showToast("Error: No callback provided for file selection");
+                return;
+            }
+            
+            // Check permissions
             String permission = getRequiredPermission(type);
             if (permission != null && !permissionManager.checkPermission(permission)) {
-                // Permission not granted - return error (Requirement 10.4)
-                return createErrorResponse("Permission denied: " + permission + " is required. " +
-                        "Please grant permission in app settings.");
+                notifyJavaScript(callback, createErrorResponse("Permission denied. Please grant " + type + " permission in settings."));
+                return;
             }
-            
-            // Validate file type
-            String mimeType = getMimeType(type);
-            if (mimeType == null) {
-                return createErrorResponse("Invalid file type: " + type + ". " +
-                        "Supported types: image, video, audio");
-            }
-            
-            // Note: In a full implementation, this would:
-            // 1. Create an Intent using FilePickerHelper
-            // 2. Launch it via ActivityResultLauncher
-            // 3. Handle the result asynchronously
-            // 4. Encode the file using FilePickerHelper.encodeToDataUri()
-            // 5. Return the result via JavaScript callback
-            //
-            // For this task, we've implemented all the helper methods and error handling.
-            // The actual ActivityResultLauncher integration would be done in MainActivity.
             
             // Create the appropriate intent
             Intent intent;
@@ -143,18 +241,25 @@ public class AndroidInterface {
                     intent = filePickerHelper.createAudioPickerIntent();
                     break;
                 default:
-                    return createErrorResponse("Unsupported file type: " + type);
+                    notifyJavaScript(callback, createErrorResponse("Unsupported file type: " + type));
+                    return;
             }
             
-            // In a full implementation, launch the intent here
-            // For now, return a message indicating the infrastructure is ready
-            return createSuccessResponse("File picker infrastructure ready. " +
-                    "Integration with ActivityResultLauncher needed for full functionality.");
+            // Launch file picker via MainActivity
+            mainActivity.launchFilePicker(intent, callback);
             
         } catch (Exception e) {
-            // Requirement 7.5: Handle errors gracefully
-            return handleError("Failed to choose file", e);
+            notifyJavaScript(callback, handleError("Failed to launch file picker", e));
         }
+    }
+    
+    /**
+     * Synchronous file picker (deprecated - use chooseFileAsync instead)
+     * Returns immediately with a message to use the async version
+     */
+    @JavascriptInterface
+    public String chooseFile(String type) {
+        return createErrorResponse("Please use chooseFileAsync(type, callback) for file selection");
     }
     
     /**
@@ -312,17 +417,25 @@ public class AndroidInterface {
      * @param callback JavaScript callback function name
      * @param result JSON result string
      */
-    private void notifyJavaScript(String callback, String result) {
+    public void notifyJavaScript(String callback, String result) {
         if (callback == null || callback.trim().isEmpty()) {
             return;
         }
         
         activity.runOnUiThread(() -> {
-            // Escape the result for JavaScript
-            String escapedResult = result.replace("'", "\\'");
-            String js = "if(window." + callback + ") window." + callback + "('" + escapedResult + "');";
+            // Pass JSON object directly (no escaping needed)
+            String js = "if(window." + callback + ") window." + callback + "(" + result + ");";
             webView.evaluateJavascript(js, null);
         });
+    }
+    
+    /**
+     * Notify JavaScript that file selection was cancelled
+     * 
+     * @param callback JavaScript callback function name
+     */
+    public void notifyFileCancelled(String callback) {
+        notifyJavaScript(callback, createErrorResponse("File selection cancelled"));
     }
     
     /**

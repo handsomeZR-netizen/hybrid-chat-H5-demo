@@ -1,9 +1,13 @@
 package com.hybridchat.app;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
@@ -18,6 +22,8 @@ public class MainActivity extends AppCompatActivity {
     
     private WebView webView;
     private AndroidInterface androidInterface;
+    private ActivityResultLauncher<Intent> filePickerLauncher;
+    private String pendingFileCallback;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,9 +31,47 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         
         webView = findViewById(R.id.webview);
+        setupFilePickerLauncher();
         setupWebView();
         injectJSBridge();
         loadWebApp();
+    }
+    
+    /**
+     * Setup ActivityResultLauncher for file picking
+     * This handles the asynchronous file selection result
+     */
+    private void setupFilePickerLauncher() {
+        filePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri uri = result.getData().getData();
+                    if (uri != null && androidInterface != null) {
+                        // Handle the selected file
+                        androidInterface.handleFileSelected(uri, pendingFileCallback);
+                    }
+                } else {
+                    // User cancelled or error occurred
+                    if (androidInterface != null && pendingFileCallback != null) {
+                        androidInterface.notifyFileCancelled(pendingFileCallback);
+                    }
+                }
+                pendingFileCallback = null;
+            }
+        );
+    }
+    
+    /**
+     * Launch file picker with intent
+     * Called from AndroidInterface
+     * 
+     * @param intent The file picker intent
+     * @param callback JavaScript callback function name
+     */
+    public void launchFilePicker(Intent intent, String callback) {
+        pendingFileCallback = callback;
+        filePickerLauncher.launch(intent);
     }
     
     /**

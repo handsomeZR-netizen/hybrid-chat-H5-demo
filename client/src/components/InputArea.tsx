@@ -14,9 +14,15 @@ declare global {
   interface Window {
     AndroidInterface?: {
       chooseFile: (type: string) => string;
+      chooseFileAsync: (type: string, callback: string) => void;
       getDeviceInfo: () => string;
       showToast: (message: string) => void;
+      saveMessage: (messageJson: string) => string;
+      getMessages: (limit: number) => string;
+      getMessagesBefore: (beforeTimestamp: number, limit: number) => string;
+      clearMessages: () => string;
     };
+    onFileSelected?: (result: any) => void;
   }
 }
 
@@ -34,17 +40,35 @@ export function InputArea({ connectionStatus, onSendMessage, onSendMediaMessage 
   };
 
   const handleMediaSelect = async (mediaType: 'image' | 'video' | 'audio') => {
-    if (window.AndroidInterface?.chooseFile) {
+    // 优先使用 Android 原生文件选择器
+    if (window.AndroidInterface?.chooseFileAsync) {
       try {
-        const result = window.AndroidInterface.chooseFile(mediaType);
-        if (result?.trim()) {
-          const messageType: MessageType = mediaType === 'image' ? 'IMAGE' : mediaType === 'video' ? 'VIDEO' : 'AUDIO';
-          onSendMediaMessage(result, messageType);
-        }
-      } catch {
+        // 设置全局回调函数
+        window.onFileSelected = (result: any) => {
+          try {
+            const data = typeof result === 'string' ? JSON.parse(result) : result;
+            if (data.success && data.data) {
+              const messageType: MessageType = mediaType === 'image' ? 'IMAGE' : mediaType === 'video' ? 'VIDEO' : 'AUDIO';
+              onSendMediaMessage(data.data, messageType);
+            } else {
+              console.error('File selection failed:', data.error);
+              if (window.AndroidInterface?.showToast) {
+                window.AndroidInterface.showToast(data.error || '文件选择失败');
+              }
+            }
+          } catch (e) {
+            console.error('Error processing file result:', e);
+          }
+        };
+        
+        // 调用 Android 异步文件选择器
+        window.AndroidInterface.chooseFileAsync(mediaType, 'onFileSelected');
+      } catch (error) {
+        console.error('Android file picker error:', error);
         fallbackToFileInput(mediaType);
       }
     } else {
+      // 降级到 Web 文件选择器
       fallbackToFileInput(mediaType);
     }
   };
