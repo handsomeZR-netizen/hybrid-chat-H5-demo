@@ -30,6 +30,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        // Enable WebView debugging for Chrome DevTools
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+        
         webView = findViewById(R.id.webview);
         setupFilePickerLauncher();
         setupWebView();
@@ -99,11 +104,15 @@ public class MainActivity extends AppCompatActivity {
         // Enable database storage
         webSettings.setDatabaseEnabled(true);
         
-        // Enable app cache
-        webSettings.setAppCacheEnabled(true);
+        // Note: setAppCacheEnabled() was deprecated in API 33 and removed
+        // Modern apps should use Service Workers or Cache API instead
         
         // Allow file access from file URLs (needed for local resources)
         webSettings.setAllowFileAccess(true);
+        
+        // Allow file access from file URLs (required for loading CSS/JS from assets)
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
         
         // Enable mixed content mode for development
         webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -150,16 +159,16 @@ public class MainActivity extends AppCompatActivity {
     private void loadWebApp() {
         // Option 1: Load from local development server (for development)
         // Change this URL to match your development server
-        String devServerUrl = "http://10.0.2.2:5173"; // 10.0.2.2 is localhost for Android emulator
+        // String devServerUrl = "http://10.0.2.2:5173"; // 10.0.2.2 is localhost for Android emulator
         
         // Option 2: Load from local assets (for production)
-        // String localUrl = "file:///android_asset/index.html";
+        String localUrl = "file:///android_asset/www/index.html";
         
         // Option 3: Load from remote server (for production)
         // String remoteUrl = "https://your-server.com/chat";
         
         // Load the URL
-        webView.loadUrl(devServerUrl);
+        webView.loadUrl(localUrl);
     }
     
     @Override

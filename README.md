@@ -83,12 +83,26 @@ cd client && npm run dev
 
 ## 功能特性
 
+### Web 端
 - 🎨 **文艺风格 UI** - 莫兰迪配色、磨砂玻璃效果、霞鹜文楷字体
-- 💬 **实时聊天** - WebSocket 双向通信
-- 📷 **多媒体消息** - 支持图片、视频、音频
-- 📜 **历史记录** - 滚动加载聊天历史
-- 🔄 **断线重连** - 自动重连机制
-- 📱 **混合开发** - Web + Android 原生
+- � ***实时聊天** - WebSocket 双向通信
+- � **历多媒体消息** - 支持图片、视频、音频
+- � ***历史记录** - 滚动加载聊天历史
+- � **断线开重连** - 自动重连机制（指数退避算法）
+
+### Android 原生能力
+- 📱 **原生文件选择器** - 使用 Android 系统文件选择器，替代 Web `<input type="file">`
+  - 支持图片、视频、音频选择
+  - 自动图片压缩（最大 1920px，质量 85%）
+  - 文件大小限制（10MB）
+  - Base64 编码返回
+- 💾 **SQLite 本地存储** - 替代 localStorage，提供更强大的数据管理
+  - 无存储容量限制（不受 5MB 限制）
+  - 支持复杂查询和索引
+  - 分页加载历史消息
+  - 自动清理旧消息
+- 🔗 **JSBridge 通信** - Web 与 Android 原生双向通信
+- 🔐 **权限管理** - 自动处理 Android 运行时权限
 
 ## 运行测试
 
@@ -109,16 +123,68 @@ cd client && npm test
 3. **同步 Gradle**：等待依赖下载完成
 4. **运行应用**：点击 Run 按钮或按 Shift+F10
 
-详细步骤请查看：
+### 使用 Android 原生功能
+
+在 Android 环境中，应用会自动使用原生能力：
+
+```javascript
+// 使用原生文件选择器（自动图片压缩）
+window.onFileSelected = (result) => {
+  const data = JSON.parse(result);
+  if (data.success) {
+    console.log('文件 Base64:', data.data);
+  }
+};
+window.AndroidInterface.chooseFileAsync('image', 'onFileSelected');
+
+// 使用 SQLite 存储（无容量限制）
+import { storage } from './utils/androidStorage';
+storage.saveMessage(message);
+const messages = storage.getMessages(50);
+```
+
+**快速开始：** [Android 功能使用示例](android/FEATURES_USAGE.md) ⚡
+
+详细文档：
 - 📱 [Android 完整部署指南](android/DEPLOYMENT_GUIDE.md) - **推荐新手阅读**
+- ✨ [Android 原生功能使用指南](android/ANDROID_FEATURES.md) - **功能详解**
 - 🚀 [快速开始](android/QUICKSTART.md)
 - 📖 [Android 项目说明](android/README.md)
 
+## 技术亮点
+
+### 前端架构
+- **React 19** + **TypeScript** - 类型安全的现代前端开发
+- **Vite** - 极速的开发体验和构建性能
+- **Tailwind CSS 4** - 原子化 CSS，高度可定制
+- **Framer Motion** - 流畅的动画效果
+- **Property-Based Testing** - 使用 fast-check 进行属性测试
+
+### 后端架构
+- **WebSocket** - 低延迟的实时双向通信
+- **双存储模式** - 支持文件存储和 Supabase 云存储
+- **会话管理** - 用户在线状态追踪
+- **消息持久化** - 可靠的消息存储和历史查询
+
+### 混合开发
+- **WebView + JSBridge** - Web 与原生无缝通信
+- **原生能力增强** - 文件选择器、SQLite 存储
+- **统一接口** - 自动检测环境，降级到 Web API
+- **权限管理** - Android 运行时权限自动处理
+
 ## 相关文档
 
+### 通用文档
 - [功能说明](doc/FEATURES.md)
 - [Supabase 配置](doc/SUPABASE_SETUP.md)
 - [更新日志](doc/CHANGELOG.md)
+
+### Android 文档
+- [Android 功能使用示例](android/FEATURES_USAGE.md) ⚡ - 快速上手
+- [Android 原生功能详解](android/ANDROID_FEATURES.md) 📖 - 完整 API
+- [Android 实现状态](android/IMPLEMENTATION_STATUS.md) ✅ - 功能清单
+- [Android 部署指南](android/DEPLOYMENT_GUIDE.md) 📱 - 部署步骤
+- [Android 快速开始](android/QUICKSTART.md) 🚀 - 5 分钟上手
 
 ## License
 

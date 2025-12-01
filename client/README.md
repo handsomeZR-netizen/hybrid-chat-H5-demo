@@ -4,14 +4,22 @@ React-based web frontend for the hybrid chat application, built with Vite and Ty
 
 ## Features
 
-✅ **Implemented:**
-- Login screen with user ID validation
-- Chat interface with message display
-- WebSocket connection management
-- Automatic reconnection on connection loss
-- Connection status indicator
-- Message input with validation
-- Responsive UI design
+✅ **Web 功能:**
+- 登录界面（用户 ID 验证）
+- 聊天界面（消息显示）
+- WebSocket 连接管理
+- 自动重连（指数退避算法）
+- 连接状态指示器
+- 消息输入与验证
+- 响应式 UI 设计
+- 多媒体消息（图片、视频、音频）
+- 历史消息懒加载
+
+✅ **Android 原生集成:**
+- 原生文件选择器（替代 `<input type="file">`）
+- SQLite 本地存储（替代 localStorage）
+- JSBridge 双向通信
+- 自动环境检测与降级
 
 ## Project Structure
 
@@ -19,17 +27,26 @@ React-based web frontend for the hybrid chat application, built with Vite and Ty
 client/
 ├── src/
 │   ├── components/
-│   │   ├── LoginScreen.tsx    # User login interface
-│   │   └── ChatScreen.tsx     # Main chat interface
+│   │   ├── LoginScreen.tsx       # 登录界面
+│   │   ├── ChatScreen.tsx        # 聊天界面
+│   │   ├── MessageBubble.tsx     # 消息气泡
+│   │   ├── InputArea.tsx         # 输入区域（集成 Android 文件选择器）
+│   │   └── Icons.tsx             # 图标组件
 │   ├── utils/
-│   │   └── websocket.ts       # WebSocket connection manager
+│   │   ├── websocket.ts          # WebSocket 连接管理
+│   │   ├── androidStorage.ts     # Android SQLite 存储适配器
+│   │   └── cn.ts                 # 样式工具
 │   ├── test/
-│   │   ├── setup.ts           # Test configuration
-│   │   └── login-connection.test.tsx  # Property-based tests
-│   ├── types.ts               # TypeScript type definitions
-│   ├── App.tsx                # Main application component
-│   └── main.tsx               # Application entry point
-├── vitest.config.ts           # Vitest configuration
+│   │   ├── setup.ts              # 测试配置
+│   │   ├── login-connection.test.tsx
+│   │   ├── message-functionality.test.tsx
+│   │   ├── history-loading.test.tsx
+│   │   ├── media-messages.test.tsx
+│   │   └── ui-state.test.tsx
+│   ├── types.ts                  # TypeScript 类型定义
+│   ├── App.tsx                   # 主应用组件
+│   └── main.tsx                  # 应用入口
+├── vitest.config.ts              # Vitest 配置
 └── package.json
 ```
 
@@ -132,14 +149,34 @@ The frontend communicates with the WebSocket server using JSON messages:
 - Event-based message handling
 - Connection state tracking
 
-## Next Steps
+## Android 集成
 
-Refer to `.kiro/specs/hybrid-chat-app/tasks.md` for the complete implementation plan.
+### 使用 Android 原生功能
 
-The next tasks include:
-- Task 5: Implement message sending and receiving functionality
-- Task 6: Implement history message lazy loading
-- Task 7: Implement media message support
+应用会自动检测运行环境，在 Android WebView 中使用原生能力：
+
+```typescript
+import { storage } from './utils/androidStorage';
+
+// 自动选择 SQLite 或 localStorage
+storage.saveMessage(message);
+const messages = storage.getMessages(50);
+
+// 检测环境
+if (window.AndroidInterface?.chooseFileAsync) {
+  // 使用 Android 原生文件选择器
+  window.AndroidInterface.chooseFileAsync('image', 'onFileSelected');
+} else {
+  // 降级到 Web 文件选择器
+  input.click();
+}
+```
+
+### 相关文档
+
+- [Android 功能使用示例](../android/FEATURES_USAGE.md) - 快速上手
+- [Android 功能详解](../android/ANDROID_FEATURES.md) - 完整 API
+- [Android 部署指南](../android/DEPLOYMENT_GUIDE.md) - 部署步骤
 
 ## Tech Stack
 
