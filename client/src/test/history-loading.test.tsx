@@ -12,8 +12,10 @@ import type { Message, ConnectionStatus } from '../types';
 describe('History Loading Properties', () => {
   const mockUserId = 'test-user';
   const mockOnSendMessage = vi.fn();
+  const mockOnSendMediaMessage = vi.fn();
   const mockOnLoadHistory = vi.fn();
   const mockOnLogout = vi.fn();
+  const mockOnRetryMessage = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,8 +51,10 @@ describe('History Loading Properties', () => {
               messages={messages}
               connectionStatus={'connected' as ConnectionStatus}
               onSendMessage={mockOnSendMessage}
+              onSendMediaMessage={mockOnSendMediaMessage}
               onLoadHistory={mockOnLoadHistory}
               onLogout={mockOnLogout}
+              onRetryMessage={mockOnRetryMessage}
               isLoadingHistory={false}
               hasMoreHistory={true}
             />
@@ -106,8 +110,10 @@ describe('History Loading Properties', () => {
               messages={messages}
               connectionStatus={'connected' as ConnectionStatus}
               onSendMessage={mockOnSendMessage}
+              onSendMediaMessage={mockOnSendMediaMessage}
               onLoadHistory={mockOnLoadHistory}
               onLogout={mockOnLogout}
+              onRetryMessage={mockOnRetryMessage}
               isLoadingHistory={false}
               hasMoreHistory={true}
             />
@@ -171,8 +177,10 @@ describe('History Loading Properties', () => {
               messages={initialMessages}
               connectionStatus={'connected' as ConnectionStatus}
               onSendMessage={mockOnSendMessage}
+              onSendMediaMessage={mockOnSendMediaMessage}
               onLoadHistory={mockOnLoadHistory}
               onLogout={mockOnLogout}
+              onRetryMessage={mockOnRetryMessage}
               isLoadingHistory={false}
               hasMoreHistory={true}
             />
@@ -203,8 +211,10 @@ describe('History Loading Properties', () => {
               messages={updatedMessages}
               connectionStatus={'connected' as ConnectionStatus}
               onSendMessage={mockOnSendMessage}
+              onSendMediaMessage={mockOnSendMediaMessage}
               onLoadHistory={mockOnLoadHistory}
               onLogout={mockOnLogout}
+              onRetryMessage={mockOnRetryMessage}
               isLoadingHistory={false}
               hasMoreHistory={true}
             />
@@ -251,8 +261,10 @@ describe('History Loading Properties', () => {
               messages={messages}
               connectionStatus={'connected' as ConnectionStatus}
               onSendMessage={mockOnSendMessage}
+              onSendMediaMessage={mockOnSendMediaMessage}
               onLoadHistory={mockOnLoadHistory}
               onLogout={mockOnLogout}
+              onRetryMessage={mockOnRetryMessage}
               isLoadingHistory={isLoading}
               hasMoreHistory={true}
             />
@@ -261,9 +273,9 @@ describe('History Loading Properties', () => {
           const loadingIndicator = container.querySelector('[data-testid="loading-indicator"]');
 
           if (isLoading) {
-            // Loading indicator should be visible
+            // Loading indicator should be visible (Chinese: 加载消息中...)
             expect(loadingIndicator).toBeTruthy();
-            expect(loadingIndicator?.textContent).toContain('Loading messages');
+            expect(loadingIndicator?.textContent).toContain('加载消息中');
           } else {
             // Loading indicator should not be visible
             expect(loadingIndicator).toBeFalsy();

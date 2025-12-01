@@ -103,8 +103,8 @@ describe('Login and Connection Property Tests', () => {
   it('Property 1: Login establishes connection and sends correct message', async () => {
     await fc.assert(
       fc.asyncProperty(
-        // Generate valid user IDs (non-empty, non-whitespace strings)
-        fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0),
+        // Generate valid user IDs (alphanumeric only to avoid special characters that break userEvent)
+        fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter(s => s.length > 0 && s.length <= 20),
         async (userId) => {
           const user = userEvent.setup();
           const { unmount } = render(<App />);
@@ -113,18 +113,18 @@ describe('Login and Connection Property Tests', () => {
             // Clear previous instances
             mockWebSocketInstances.length = 0;
             
-            // Find and fill the user ID input
-            const input = screen.getByLabelText(/user id/i);
+            // Find and fill the user ID input (Chinese label: 用户ID)
+            const input = screen.getByLabelText(/用户ID/i);
             await user.clear(input);
             await user.type(input, userId);
 
-            // Submit the login form
-            const loginButton = screen.getByRole('button', { name: /login/i });
+            // Submit the login form (Chinese button: 开始聊天)
+            const loginButton = screen.getByRole('button', { name: /开始聊天/i });
             await user.click(loginButton);
 
             // Wait for WebSocket connection to be established and chat screen to appear
             await waitFor(() => {
-              expect(screen.queryByRole('button', { name: /login/i })).not.toBeInTheDocument();
+              expect(screen.queryByRole('button', { name: /开始聊天/i })).not.toBeInTheDocument();
               expect(mockWebSocketInstances.length).toBeGreaterThan(0);
             }, { timeout: 1000 });
 
@@ -183,23 +183,23 @@ describe('Login and Connection Property Tests', () => {
             // Clear previous instances
             const initialInstanceCount = mockWebSocketInstances.length;
             
-            // Find and fill the user ID input with whitespace
-            const input = screen.getByLabelText(/user id/i);
+            // Find and fill the user ID input with whitespace (Chinese label: 用户ID)
+            const input = screen.getByLabelText(/用户ID/i);
             await user.clear(input);
             await user.type(input, whitespaceUserId);
 
-            // Try to submit the login form
-            const loginButton = screen.getByRole('button', { name: /login/i });
+            // Try to submit the login form (Chinese button: 开始聊天)
+            const loginButton = screen.getByRole('button', { name: /开始聊天/i });
             await user.click(loginButton);
 
             // Small delay to ensure any async operations complete
             await new Promise(resolve => setTimeout(resolve, 50));
 
             // Verify we're still on the login screen (not navigated to chat)
-            expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /开始聊天/i })).toBeInTheDocument();
 
-            // Verify error message is shown
-            expect(screen.getByText(/user id cannot be empty/i)).toBeInTheDocument();
+            // Verify error message is shown (Chinese: 用户ID不能为空)
+            expect(screen.getByText(/用户ID不能为空/i)).toBeInTheDocument();
 
             // Verify no new WebSocket connection was attempted
             expect(mockWebSocketInstances.length).toBe(initialInstanceCount);

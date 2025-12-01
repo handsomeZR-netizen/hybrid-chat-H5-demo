@@ -1,6 +1,8 @@
 import { useState, useRef, type FormEvent } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { ConnectionStatus, MessageType } from '../types';
 import { ImageIcon, VideoIcon, AudioIcon, SendIcon } from './Icons';
+import { cn } from '../utils/cn';
 
 interface InputAreaProps {
   connectionStatus: ConnectionStatus;
@@ -8,7 +10,6 @@ interface InputAreaProps {
   onSendMediaMessage: (content: string, type: MessageType) => void;
 }
 
-// Declare AndroidInterface type for JSBridge
 declare global {
   interface Window {
     AndroidInterface?: {
@@ -21,47 +22,29 @@ declare global {
 
 export function InputArea({ connectionStatus, onSendMessage, onSendMediaMessage }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMediaType, setPendingMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    
-    // Validate: message cannot be empty or only whitespace
-    if (!inputValue.trim()) {
-      return;
-    }
-
+    if (!inputValue.trim()) return;
     onSendMessage(inputValue.trim());
     setInputValue('');
   };
 
   const handleMediaSelect = async (mediaType: 'image' | 'video' | 'audio') => {
-    // Try JSBridge first (Android environment)
-    if (window.AndroidInterface && window.AndroidInterface.chooseFile) {
+    if (window.AndroidInterface?.chooseFile) {
       try {
         const result = window.AndroidInterface.chooseFile(mediaType);
-        
-        if (result && result.trim()) {
-          // Determine message type based on media type
-          let messageType: MessageType;
-          if (mediaType === 'image') {
-            messageType = 'IMAGE';
-          } else if (mediaType === 'video') {
-            messageType = 'VIDEO';
-          } else {
-            messageType = 'AUDIO';
-          }
-          
+        if (result?.trim()) {
+          const messageType: MessageType = mediaType === 'image' ? 'IMAGE' : mediaType === 'video' ? 'VIDEO' : 'AUDIO';
           onSendMediaMessage(result, messageType);
         }
-      } catch (error) {
-        console.error('JSBridge error:', error);
-        // Fall back to file input
+      } catch {
         fallbackToFileInput(mediaType);
       }
     } else {
-      // Fall back to file input for browser environment
       fallbackToFileInput(mediaType);
     }
   };
@@ -69,76 +52,44 @@ export function InputArea({ connectionStatus, onSendMessage, onSendMediaMessage 
   const fallbackToFileInput = (mediaType: 'image' | 'video' | 'audio') => {
     setPendingMediaType(mediaType);
     if (fileInputRef.current) {
-      // Set accept attribute based on media type
-      if (mediaType === 'image') {
-        fileInputRef.current.accept = 'image/*';
-      } else if (mediaType === 'video') {
-        fileInputRef.current.accept = 'video/*';
-      } else {
-        fileInputRef.current.accept = 'audio/*';
-      }
+      fileInputRef.current.accept = mediaType === 'image' ? 'image/*' : mediaType === 'video' ? 'video/*' : 'audio/*';
       fileInputRef.current.click();
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !pendingMediaType) {
-      return;
-    }
+    if (!file || !pendingMediaType) return;
 
-    try {
-      // Read file and convert to Base64
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        
-        // Determine message type
-        let messageType: MessageType;
-        if (pendingMediaType === 'image') {
-          messageType = 'IMAGE';
-        } else if (pendingMediaType === 'video') {
-          messageType = 'VIDEO';
-        } else {
-          messageType = 'AUDIO';
-        }
-        
-        onSendMediaMessage(base64, messageType);
-        setPendingMediaType(null);
-      };
-      
-      reader.onerror = () => {
-        console.error('File reading error');
-        setPendingMediaType(null);
-      };
-      
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error processing file:', error);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      const messageType: MessageType = pendingMediaType === 'image' ? 'IMAGE' : pendingMediaType === 'video' ? 'VIDEO' : 'AUDIO';
+      onSendMediaMessage(base64, messageType);
       setPendingMediaType(null);
-    }
-    
-    // Reset file input
+    };
+    reader.onerror = () => setPendingMediaType(null);
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
   const isDisabled = connectionStatus !== 'connected';
   const canSend = !isDisabled && inputValue.trim().length > 0;
 
+
   return (
-    <form
+    <motion.form
+      initial={{ y: 30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       onSubmit={handleSubmit}
-      style={{
-        padding: '15px 20px',
-        borderTop: '1px solid #ddd',
-        backgroundColor: '#fff',
-        display: 'flex',
-        gap: '10px',
-        alignItems: 'center'
-      }}
+      className={cn(
+        "flex items-end gap-2 p-3 rounded-3xl transition-all duration-300",
+        "bg-white/80 backdrop-blur-xl border shadow-lg",
+        isFocused ? "border-sage-300 shadow-sage-100" : "border-white/50"
+      )}
       data-testid="input-area"
     >
-      {/* Hidden file input for fallback */}
       <input
         ref={fileInputRef}
         type="file"
@@ -147,110 +98,108 @@ export function InputArea({ connectionStatus, onSendMessage, onSendMediaMessage 
         data-testid="file-input"
       />
       
-      {/* Media buttons */}
-      <div style={{ display: 'flex', gap: '4px' }}>
-        <button
-          type="button"
+      {/* 媒体按钮组 */}
+      <div className="flex gap-1 pl-1 pb-0.5">
+        <MediaButton
+          icon={<ImageIcon size={18} color={isDisabled ? '#d1d5db' : '#8AA29E'} />}
           onClick={() => handleMediaSelect('image')}
           disabled={isDisabled}
-          data-testid="image-button"
+          testId="image-button"
           title="发送图片"
-          style={{
-            padding: '10px',
-            backgroundColor: isDisabled ? '#f5f5f5' : '#fff',
-            color: isDisabled ? '#bbb' : '#1976d2',
-            border: '1px solid #e0e0e0',
-            borderRadius: '50%',
-            cursor: isDisabled ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          <ImageIcon size={20} color={isDisabled ? '#bbb' : '#1976d2'} />
-        </button>
-        
-        <button
-          type="button"
+        />
+        <MediaButton
+          icon={<VideoIcon size={18} color={isDisabled ? '#d1d5db' : '#8AA29E'} />}
           onClick={() => handleMediaSelect('video')}
           disabled={isDisabled}
-          data-testid="video-button"
+          testId="video-button"
           title="发送视频"
-          style={{
-            padding: '10px',
-            backgroundColor: isDisabled ? '#f5f5f5' : '#fff',
-            color: isDisabled ? '#bbb' : '#1976d2',
-            border: '1px solid #e0e0e0',
-            borderRadius: '50%',
-            cursor: isDisabled ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          <VideoIcon size={20} color={isDisabled ? '#bbb' : '#1976d2'} />
-        </button>
-        
-        <button
-          type="button"
+        />
+        <MediaButton
+          icon={<AudioIcon size={18} color={isDisabled ? '#d1d5db' : '#8AA29E'} />}
           onClick={() => handleMediaSelect('audio')}
           disabled={isDisabled}
-          data-testid="audio-button"
+          testId="audio-button"
           title="发送语音"
-          style={{
-            padding: '10px',
-            backgroundColor: isDisabled ? '#f5f5f5' : '#fff',
-            color: isDisabled ? '#bbb' : '#1976d2',
-            border: '1px solid #e0e0e0',
-            borderRadius: '50%',
-            cursor: isDisabled ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          <AudioIcon size={20} color={isDisabled ? '#bbb' : '#1976d2'} />
-        </button>
+        />
       </div>
       
+      {/* 输入框 */}
       <input
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder="输入消息..."
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholder="写下你的想法..."
         disabled={isDisabled}
         data-testid="message-input"
-        style={{
-          flex: 1,
-          padding: '10px 15px',
-          border: '1px solid #ddd',
-          borderRadius: '20px',
-          fontSize: '14px',
-          outline: 'none'
-        }}
+        className={cn(
+          "flex-1 bg-transparent border-none outline-none py-2 px-1",
+          "text-gray-700 placeholder-gray-400 text-sm tracking-wide",
+          "disabled:text-gray-300"
+        )}
       />
-      <button
-        type="submit"
-        disabled={!canSend}
-        data-testid="send-button"
-        style={{
-          padding: '12px',
-          backgroundColor: canSend ? '#1976d2' : '#e0e0e0',
-          color: 'white',
-          border: 'none',
-          borderRadius: '50%',
-          cursor: canSend ? 'pointer' : 'not-allowed',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background-color 0.2s'
-        }}
-      >
-        <SendIcon size={20} color="white" />
-      </button>
-    </form>
+      
+      {/* 发送按钮 */}
+      <AnimatePresence>
+        {canSend && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            type="submit"
+            data-testid="send-button"
+            className="p-2.5 bg-gradient-to-br from-sage-400 to-sage-500 rounded-full text-white shadow-md hover:shadow-lg transition-shadow active:scale-95"
+          >
+            <SendIcon size={18} color="white" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+      
+      {!canSend && (
+        <button
+          type="submit"
+          disabled
+          data-testid="send-button"
+          className="p-2.5 bg-gray-200 rounded-full text-white cursor-not-allowed"
+        >
+          <SendIcon size={18} color="#d1d5db" />
+        </button>
+      )}
+    </motion.form>
+  );
+}
+
+// 媒体按钮子组件
+function MediaButton({ 
+  icon, 
+  onClick, 
+  disabled, 
+  testId, 
+  title 
+}: { 
+  icon: React.ReactNode; 
+  onClick: () => void; 
+  disabled: boolean; 
+  testId: string; 
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      title={title}
+      className={cn(
+        "p-2 rounded-full transition-all duration-200",
+        disabled 
+          ? "bg-gray-100 cursor-not-allowed" 
+          : "bg-transparent hover:bg-sage-50 active:scale-95"
+      )}
+    >
+      {icon}
+    </button>
   );
 }

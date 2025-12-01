@@ -1,31 +1,106 @@
+@import "tailwindcss";
+
+/* 自定义主题变量 */
+@theme {
+  /* 莫兰迪色系 */
+  --color-sage-50: #f4f6f5;
+  --color-sage-100: #e6ebe9;
+  --color-sage-200: #cdd7d3;
+  --color-sage-300: #a8bab4;
+  --color-sage-400: #8AA29E;
+  --color-sage-500: #6d8a85;
+  --color-sage-600: #57706c;
+  --color-sage-700: #475b58;
+  --color-sage-800: #3c4c49;
+  --color-sage-900: #34403e;
+  
+  --color-rose-muted: #C9A9A6;
+  --color-terracotta: #C4A484;
+  --color-haze: #8BA4B4;
+  --color-cream: #FAF8F5;
+  --color-warmgray: #F5F3F0;
+  
+  /* 字体 */
+  --font-wenkai: "LXGW WenKai Screen", sans-serif;
+  
+  /* 动画 */
+  --animate-blob: blob 7s infinite;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.4s ease-out;
+  
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* 全局样式 */
 * {
   box-sizing: border-box;
 }
 
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #213547;
-  background-color: #f5f5f5;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html, body {
+html, body, #root {
+  height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
 }
 
-#root {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+body {
+  font-family: "LXGW WenKai Screen", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #FAF8F5 0%, #F5F3F0 100%);
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(138, 162, 158, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 162, 158, 0.5);
+}
+
+/* 动画延迟类 */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* 磨砂玻璃效果 */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }

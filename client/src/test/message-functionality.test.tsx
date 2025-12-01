@@ -45,28 +45,31 @@ describe('Message Functionality Property Tests', () => {
 
     fc.assert(
       fc.property(textMessageArbitrary, (message) => {
-        const { container } = render(
+        const { container, unmount } = render(
           <MessageBubble message={message} isMe={false} />
         );
 
-        // Check that sender information is present
-        const senderElement = screen.getByTestId('sender-name');
-        expect(senderElement.textContent).toBe(message.senderId);
+        // Check that sender information is present (use container query to avoid multiple elements)
+        const senderElement = container.querySelector('[data-testid="sender-name"]');
+        expect(senderElement?.textContent).toBe(message.senderId);
 
         // Check that message content is present
-        const contentElement = screen.getByTestId('message-content');
-        expect(contentElement.textContent).toBe(message.content);
+        const contentElement = container.querySelector('[data-testid="message-content"]');
+        expect(contentElement?.textContent).toBe(message.content);
 
         // Check that timestamp is present
-        const timestampElement = screen.getByTestId('message-timestamp');
-        expect(timestampElement.textContent).toBeTruthy();
+        const timestampElement = container.querySelector('[data-testid="message-timestamp"]');
+        expect(timestampElement?.textContent).toBeTruthy();
         
-        // Verify the timestamp contains the expected time
-        const expectedTime = new Date(message.timestamp).toLocaleTimeString();
-        expect(timestampElement.textContent).toBe(expectedTime);
+        // Verify the timestamp contains the expected time (use short format)
+        const expectedTime = new Date(message.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        expect(timestampElement?.textContent).toBe(expectedTime);
 
         // Cleanup
-        container.remove();
+        unmount();
       }),
       { numRuns: 100 }
     );
@@ -96,6 +99,7 @@ describe('Message Functionality Property Tests', () => {
           <InputArea
             connectionStatus="connected"
             onSendMessage={mockSendMessage}
+            onSendMediaMessage={() => {}}
           />
         );
 

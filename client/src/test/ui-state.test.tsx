@@ -121,35 +121,31 @@ describe('UI State Management Property Tests', () => {
             mockWebSocketInstances.length = 0;
             
             // Initially, we should be on login screen (no connection status shown)
-            expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /开始聊天/i })).toBeInTheDocument();
 
-            // Login to trigger connection
-            const input = screen.getByLabelText(/user id/i);
+            // Login to trigger connection (Chinese labels)
+            const input = screen.getByLabelText(/用户ID/i);
             await user.clear(input);
             await user.type(input, userId);
 
-            const loginButton = screen.getByRole('button', { name: /login/i });
+            const loginButton = screen.getByRole('button', { name: /开始聊天/i });
             await user.click(loginButton);
 
             // Wait for chat screen to appear
             await waitFor(() => {
-              expect(screen.queryByRole('button', { name: /login/i })).not.toBeInTheDocument();
+              expect(screen.queryByRole('button', { name: /开始聊天/i })).not.toBeInTheDocument();
               expect(mockWebSocketInstances.length).toBeGreaterThan(0);
             }, { timeout: 1000 });
 
             const mockWs = mockWebSocketInstances[mockWebSocketInstances.length - 1];
 
-            // STATE 1: Connecting
+            // STATE 1: Connecting (Chinese: 连接中...)
             // The connection should start in CONNECTING state
             // Note: The UI might transition quickly, so we check if it was ever in connecting state
             // or if it's already moved to another state
-            let sawConnecting = false;
             try {
               await waitFor(() => {
-                const connectingText = screen.queryByText(/^connecting\.\.\.$/i);
-                if (connectingText) {
-                  sawConnecting = true;
-                }
+                const connectingText = screen.queryByText(/连接中/i);
                 expect(connectingText).toBeInTheDocument();
               }, { timeout: 200 });
             } catch {
@@ -157,27 +153,27 @@ describe('UI State Management Property Tests', () => {
               // The important part is that we can verify the other states
             }
 
-            // STATE 2: Connected
+            // STATE 2: Connected (Chinese: 已连接)
             // Simulate connection opening
             await act(async () => {
               mockWs.simulateOpen();
             });
 
             await waitFor(() => {
-              // Look for exact "Connected" text, not "Connecting" or "Disconnected"
-              const statusElement = screen.getByText(/^connected$/i);
+              // Look for Chinese "已连接" text
+              const statusElement = screen.getByText(/已连接/i);
               expect(statusElement).toBeInTheDocument();
             }, { timeout: 500 });
 
-            // STATE 3: Disconnected
+            // STATE 3: Disconnected (Chinese: 未连接)
             // Simulate connection closing
             await act(async () => {
               mockWs.simulateClose();
             });
 
             await waitFor(() => {
-              // Look for exact "Disconnected" text
-              const statusElement = screen.getByText(/^disconnected$/i);
+              // Look for Chinese "未连接" text
+              const statusElement = screen.getByText(/未连接/i);
               expect(statusElement).toBeInTheDocument();
             }, { timeout: 500 });
 
